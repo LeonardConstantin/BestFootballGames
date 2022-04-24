@@ -23,7 +23,7 @@ def make_competitions_request():
     return x
 
 def write_file(data,name):
-    with open('Fussball/'+name+".json", 'w') as outfile:
+    with open('D:\Programmierprojekte\Fussball/'+name+".json", 'w') as outfile:
         json.dump(data,outfile,indent=4)
 
 def make_matches_request(von,bis):
@@ -137,18 +137,25 @@ def bubblesort_importance(matches):
     return matches
 
 def bubblesort_standings(matches):
+    #print("Länge matches ", matches)
     matches_neu=[]
     i=0
-    while i<len(matches)-1:
+    while i<len(matches):
         equal_importance=[]
         count=1
-        while matches[i]['importance']==matches[i+count-1]['importance'] and count<len(matches):
-            equal_importance.append(matches[i+count-1])
+        #print("i ", i," count",count)
+        while count+i<len(matches) and matches[i]['importance']==matches[i+count]['importance']:
+            equal_importance.append(matches[i+count])
             count=count+1
-        temp=bubblesort(equal_importance)
-        for k in range(0,count-1):
-            matches_neu.append(temp[k])
+        if count!=1:
+            temp=bubblesort(equal_importance)
+            for k in range(0,count-1):
+                matches_neu.append(temp[k])
+        else:
+            matches_neu.append(matches[i])
         i=i+count
+
+    print("matches neu",matches_neu)
     return matches_neu
 
 def bubblesort(matches):
@@ -182,6 +189,9 @@ def sort_by_day(matches):
         weekday=date.weekday()
         games_weekdays[weekday].append(match)
     #pprint(games_weekdays)
+    for i,x in enumerate (games_weekdays):
+        if len(x)==0:
+            games_weekdays.pop(i)
     return games_weekdays
 
 def formate_time(input):
@@ -219,29 +229,32 @@ def get_Data():
     return t
 
 def start():
-    #standings=get_all_standings()
-    #data=make_matches_request("2022-04-15","2022-04-22")
-    #data=json.loads(data.text)
-    #matches=find_matches(data)
-    #matches=make_special_match_format(matches)
-    #matches=fillout_matches(matches,standings)
-    matches=get_Data()
+    standings=get_all_standings()
+    data=make_matches_request("2022-04-25","2022-04-30")
+    data=json.loads(data.text)
+    matches=find_matches(data)
+    matches=make_special_match_format(matches)
+    matches=fillout_matches(matches,standings)
+    #matches=get_Data()
     for match in matches:
         match['importance']=calculate_importance(match)
     matches=bubblesort_importance(matches)
     weekdays=sort_by_day(matches)
-    for i in range(0,7):
-        weekdays[i]=bubblesort_standings(weekdays[i])
+    for i in range(0,len(weekdays)):
+        #write_file(weekdays[i],str(i))
+        if len(weekdays[i])>2:
+            weekdays[i]=bubblesort_standings(weekdays[i])
     return weekdays
 
-
 class App(tk.Tk):
+
     def __init__(self):
         super().__init__()
         self.geometry("1900x1000")
         self.make_frms()
         self.fill_frm1()
         self.stop_garbage=[]
+    
     def fill_frm1(self):
         text_eins = tk.StringVar()
         text_eins.set("dd.mm.yyyy")
@@ -288,7 +301,7 @@ class App(tk.Tk):
         self.get_frame()
         self.pb.stop()
 
-    def load_logo(url):
+    def load_logo(self,url):
         if url[len(url)-3:len(url)]!="png":
             response = requests.get(url)
             drawing = svg2rlg(BytesIO(response.content))
@@ -305,7 +318,8 @@ class App(tk.Tk):
         #Damit die Bilder geladen werden muss der Speicher irgendwie "reverenziert" werden um nicht weggeworfen zu werden. 
         #Deswegen speichern in der Liste. Keine Ahnung was das mit der Memorie macht. Aber anders will es nicht...
         matches=start()
-        for y in range (len(matches)):
+        print("matches",matches[0])
+        for y in range (0,len(matches)):
             tk.Label(self.frm3,text=get_weekday(get_datetime(matches[y][0]['infos']['time']).weekday()),borderwidth=2, relief="groove").grid(column=y,row=0,sticky=tk.NSEW)
             for i,match in enumerate (matches[y][0:9]):
                 #Fenster für ein Spiel
