@@ -10,7 +10,6 @@ from io import BytesIO
 from svglib.svglib import svg2rlg
 from reportlab.graphics import renderPM
 from datetime import datetime as dt
-from pprint import pprint
 from threading import Thread
 
 competition_list=["Bundesliga", "Serie A", "Primeira Liga", "Premier League", "Ligue 1", "Primera Division"]
@@ -29,7 +28,6 @@ def write_file(data,name):
 def make_matches_request(von,bis):
     headers={'X-Auth-Token': '88c9c6c677874894b40c8d72629e1f63'}
     url = 'https://api.football-data.org/v2/matches?dateFrom='+von+'&dateTo='+bis
-    print("url",url)
     response = requests.get(url,headers=headers)
     return response
 
@@ -154,8 +152,6 @@ def bubblesort_standings(matches):
         else:
             matches_neu.append(matches[i])
         i=i+count
-
-    print("matches neu",matches_neu)
     return matches_neu
 
 def bubblesort(matches):
@@ -228,9 +224,15 @@ def get_Data():
     t=json.loads(f.read())
     return t
 
-def start():
+def convert_input_to_format(von,bis):
+    new_von=von[6:]+"-"+von[3:5]+"-"+von[0:2]
+    new_bis=bis[6:]+"-"+bis[3:5]+"-"+bis[0:2]
+    return [new_von,new_bis]
+
+def start(von,bis):
     standings=get_all_standings()
-    data=make_matches_request("2022-04-25","2022-04-30")
+    von_bis=convert_input_to_format(von,bis)
+    data=make_matches_request(von_bis[0],von_bis[1])
     data=json.loads(data.text)
     matches=find_matches(data)
     matches=make_special_match_format(matches)
@@ -240,11 +242,14 @@ def start():
         match['importance']=calculate_importance(match)
     matches=bubblesort_importance(matches)
     weekdays=sort_by_day(matches)
+    new_weekdays=[]
     for i in range(0,len(weekdays)):
         #write_file(weekdays[i],str(i))
         if len(weekdays[i])>2:
             weekdays[i]=bubblesort_standings(weekdays[i])
-    return weekdays
+        if len(weekdays[i])!=0:
+            new_weekdays.append(weekdays[i])
+    return new_weekdays
 
 class App(tk.Tk):
 
@@ -254,17 +259,17 @@ class App(tk.Tk):
         self.make_frms()
         self.fill_frm1()
         self.stop_garbage=[]
-    
+
     def fill_frm1(self):
-        text_eins = tk.StringVar()
-        text_eins.set("dd.mm.yyyy")
-        textbox_eins = ttk.Entry(self.frm1, textvariable=text_eins).grid(column=1,row=0)
-        text_zwei = tk.StringVar()
-        text_zwei.set("dd.mm.yyyy")
-        textbox_zwei = ttk.Entry(self.frm1, textvariable=text_zwei).grid(column=1,row=1)
-        date_From=ttk.Label(self.frm1,text="Datum-Von").grid(column=0,row=0)
-        date_To=ttk.Label(self.frm1,text="Datum-Bis").grid(column=0,row=1) 
-        ttk.Button(self.frm1, text = "Absenden", command=lambda:self.start_thread()).grid(column=1, row=3,sticky=tk.NSEW) 
+        self.date_from = tk.StringVar()
+        self.date_from.set("dd.mm.yyyy")
+        ttk.Entry(self.frm1, textvariable= self.date_from).grid(column=1, row=0)
+        self.date_to = tk.StringVar()
+        self.date_to.set("dd.mm.yyyy")
+        ttk.Entry(self.frm1, textvariable= self.date_to).grid(column=1, row=1)
+        date_from_label=ttk.Label(self.frm1,text="Datum-Von").grid(column=0, row=0)
+        date_to_label=ttk.Label(self.frm1,text="Datum-Bis").grid(column=0, row=1) 
+        ttk.Button(self.frm1, text = "Absenden", command=lambda:self.start_thread()).grid(column=1, row=3, sticky=tk.NSEW) 
 
     def fill_frm2(self):
         self.pb = ttk.Progressbar(self.frm2,orient='horizontal',mode='indeterminate',length=280)
@@ -316,19 +321,18 @@ class App(tk.Tk):
     def get_frame(self):
         #i=0,1,2,3... match=values
         #Damit die Bilder geladen werden muss der Speicher irgendwie "reverenziert" werden um nicht weggeworfen zu werden. 
-        #Deswegen speichern in der Liste. Keine Ahnung was das mit der Memorie macht. Aber anders will es nicht...
-        matches=start()
-        print("matches",matches[0])
+        #Deswegen speichern in der Liste. Keine Ahnung was das mit der Memory macht. Aber anders will es nicht...
+        matches=start(self.date_from.get(),self.date_to.get())
         for y in range (0,len(matches)):
             tk.Label(self.frm3,text=get_weekday(get_datetime(matches[y][0]['infos']['time']).weekday()),borderwidth=2, relief="groove").grid(column=y,row=0,sticky=tk.NSEW)
             for i,match in enumerate (matches[y][0:9]):
                 #Fenster für ein Spiel
                 match_frame=ttk.Frame(self.frm3,padding=0,borderwidth=2, relief="groove")
-                match_frame.grid(column=y, row=i+1,sticky=tk.NSEW)
+                match_frame.grid(column=y, row=i+1, sticky=tk.NSEW)
                 #Hinzufügen der Zeit
-                tk.Label(match_frame,text=formate_time(match['infos']['time'])).grid(column=1,row=1,sticky=tk.NSEW)
+                tk.Label(match_frame,text=formate_time(match['infos']['time'])).grid(column=1, row=1, sticky=tk.NSEW)
                 #Hinzufügen Ränge
-                tk.Label(match_frame,text=str(match['infos']['homeTeamPosition'])+". vs "+str(match['infos']['awayTeamPosition'])+".").grid(column=1,row=0,sticky=tk.NSEW)
+                tk.Label(match_frame,text=str(match['infos']['homeTeamPosition'])+". vs "+str(match['infos']['awayTeamPosition'])+".").grid(column=1, row=0, sticky=tk.NSEW)
                 #Hinzufügen Logo 1
                 try:
                     url=match['infos']['homeTeamLogo']
@@ -346,9 +350,9 @@ class App(tk.Tk):
                 except:
                     tk.Label(match_frame).grid(column=0,row=0)
                 #Hinzufügen TeamName 1
-                tk.Label(match_frame,text=match['infos']['homeTeam'],wraplength=60).grid(column=0,row=1)
+                tk.Label(match_frame,text=match['infos']['homeTeam'],wraplength=60).grid(column=0, row=1)
                 #Hinzufügen TeamName 2
-                tk.Label(match_frame,text=match['infos']['awayTeam'],wraplength=60).grid(column=3,row=1,sticky=tk.N) 
+                tk.Label(match_frame,text=match['infos']['awayTeam'],wraplength=60).grid(column=3, row=1, sticky=tk.N) 
     
 app=App()
 app.mainloop()
