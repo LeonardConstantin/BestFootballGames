@@ -23,5 +23,5 @@ Die 2 Inputfelder müssen zwingend mit dd.mm.yyyy eingegeben werden. Auch die Pu
 Der Code läuft für Zeitintervalle von **eins** bis **sieben** Tagen. Darüber hinaus ist der Code nicht getestet und könnte ungewollte "Feature" haben.
 Auch gibt es keinen zurück Button. Das Programm muss Momentan immer neu gestartet werden.
 
-** Da die API in der gratis Version nur 10 Anfragen pro Minute zulässt und mein Code 6 Anfragen in einem Durchlauf abfragt, kann man nur 1 mal pro Minute den Code ausführen**
+**Da die API in der gratis Version nur 10 Anfragen pro Minute zulässt und mein Code 6 Anfragen in einem Durchlauf abfragt, kann man nur 1 mal pro Minute den Code ausführen**
 Vorsicht, der Fehler wird momentan noch nicht abgefangen. 
