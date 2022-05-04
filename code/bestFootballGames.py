@@ -297,7 +297,7 @@ class App(tk.Tk):
         frame.tkraise()
 
     def monitor(self):
-        if self.p2.isAlive()== True:
+        if self.p2.is_alive()== True:
             self.after(1000,lambda:self.monitor())
         else:
             self.change_frame(self.frm3)
